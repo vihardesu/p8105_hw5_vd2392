@@ -3,7 +3,25 @@ title: "tutorials.Rmd"
 output: html_document
 ---
 
+# Setup
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+# Installations
+```{r}
+library(tidyverse)
+library(rvest)
+```
+
+# Fixes the output on the page
+```{r}
+set.seed(1)
+```
+
+-functions
+-map 
+-for loop
+-pull (out a column from a df)
+-nest => takes a set of columns from a df and places it into a single column
+-unnest
