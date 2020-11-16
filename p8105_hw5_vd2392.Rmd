@@ -23,13 +23,7 @@ knitr::opts_chunk$set(
   out.width = "90%"
 )
 
-theme_set(theme_minimal() + theme(legend.position = "bottom"))
-options(
-  ggplot2.continuous.colour = "viridis",
-  ggplot2.continuous.fill = "viridis"
-)
-scale_colour_discrete = scale_color_viridis_d
-scale_fill_discrete = scale_fill_viridis_d
+
 ```
 
 ##### Installations
@@ -199,12 +193,103 @@ ggplot(data = final, aes(x = week, y = result, color = treatment_arm)) +
   geom_point(data = final) + 
   geom_line(data = final, aes(x = week, y = result, color = treatment_arm))
 ```
+### Problem 3
+
+
+```{r}
+n = 30
+sigma = 5
+alpha = 0.05
+mu = 0
+
+simulation = function(n = n, mu = mu, sigma = sigma, alpha = alpha) {
+  data = tibble(
+    x = rnorm(n, mean = mu, sd = sigma)
+  )
+  data %>% 
+    summarize(
+      mu_hat = mean(x),
+      p.value = t.test(x, mu = mu, conf.level = 1 - alpha) %>% 
+        broom::tidy() %>% 
+        select(p.value)
+    ) %>% 
+    unnest(p.value) %>% 
+    mutate(
+      reject = as.logical(p.value < alpha)
+    )
+}
+
+```
+
+
+```{r}
+
+output = vector("list", length = 6)
+
+trials = 500
+
+for (i in 1:6) {
+  output[[i]] = rerun(trials, simulation(n, i, sigma, alpha)) %>% 
+  bind_rows
+}
+
+sim_results = 
+  tibble(true_mu = c(1,2,3,4,5,6)) %>% 
+  mutate(
+    estimate_dfs = map(output, bind_rows)) %>% 
+  unnest(estimate_dfs)
+sim_results
+```
+
+## Plots
+## http://www.sthda.com/english/wiki/ggplot2-barplots-quick-start-guide-r-software-and-data-visualization
+
+true mu by sum(pvalue > .05) / sum(trials at true mu)
+(0 - 6) vs. (~5% ...)
 
 ```{r}
 
 
-
-
+sim_results %>% 
+  group_by(true_mu) %>% 
+  summarize(
+    proportion = sum(reject) / trials
+  ) %>% 
+  ggplot(aes(x = true_mu, y = proportion, fill=true_mu)) +
+    geom_bar(stat="identity")+
+    geom_text(aes(label=proportion), vjust=1.6, color="white", size=3.5)
 
 ```
+
+
+## Plot 2
+true  mu by avg(mu_hat over 5000 trials)
+
+```{r}
+sim_results %>% 
+  mutate(
+    true_mu = str_c("n = ", true_mu),
+    true_mu = fct_inorder(true_mu)) %>% 
+  ggplot(aes(x = true_mu, y = mu_hat, fill = true_mu)) + 
+    geom_violin()
+
+```
+true mu by avg(mu_har for subset of 5000 trials where rejected)
+
+
+```{r}
+sim_results %>% 
+  filter(
+    p.value < 0.05
+  ) %>% 
+  mutate(
+    true_mu = str_c("n = ", true_mu),
+    true_mu = fct_inorder(true_mu)) %>% 
+  ggplot(aes(x = true_mu, y = mu_hat, fill = true_mu)) + 
+    geom_violin()
+
+```
+
+
+
 
